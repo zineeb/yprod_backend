@@ -8,8 +8,8 @@
 */
 
 import router from '@adonisjs/core/services/router'
-import AuthController from "#controllers/auth_controller";
-import MediaController from "#controllers/media_controller";
+const AuthController = () => import('#controllers/auth_controller')
+const MediaController = () => import('#controllers/media_controller')
 
 router.get('/', async () => {
   return {
@@ -17,12 +17,12 @@ router.get('/', async () => {
   }
 })
 
-router.get('medias/latest',[MediaController,'getLatestMedia'])
+router.get('medias/latest', [MediaController, 'getLatestMedia'])
 router.get('medias', [MediaController, 'getMediasByType'])
 router.get('search', [MediaController, 'search'])
 
-router.get('media',[MediaController, 'showInformations'])
+router.get('media', [MediaController, 'showInformations'])
 
-router.post('register',[AuthController,'register'])
-router.post('login',[AuthController,'login'])
-
+router.post('auth/register', [AuthController, 'register'])
+router.post('auth/login', [AuthController, 'login'])
+router.get('auth/session', [AuthController, 'session'])

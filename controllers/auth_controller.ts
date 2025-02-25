@@ -60,6 +60,6 @@ export default class AuthController {
   }
   public async session({ auth }: HttpContext) {
     await auth.check()
-    return { user: auth.user }
+    return { user: auth.user, token: auth.token }
   }
 }
