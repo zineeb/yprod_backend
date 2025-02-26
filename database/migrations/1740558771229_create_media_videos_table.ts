@@ -1,29 +1,28 @@
-// Migration for media_videos table (url media)
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'media_videos'
+  protected tableName = 'mediaVideos'
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
       table
-        .integer('media_id')
+        .integer('mediaId')
         .unsigned()
         .nullable()
         .references('id')
         .inTable('medias')
         .onDelete('CASCADE')
       table
-        .integer('episode_id')
+        .integer('episodeId')
         .unsigned()
         .nullable()
         .references('id')
-        .inTable('episodes_series')
+        .inTable('episodesSeries')
         .onDelete('CASCADE')
-      table.string('url_video').notNullable()
-      table.timestamp('created_at')
-      table.timestamp('updated_at')
+      table.string('urlVideo').notNullable()
+      table.timestamp('createdAt')
+      table.timestamp('updatedAt')
     })
   }
 

@@ -1,4 +1,3 @@
-// Migration for medias table (information common to films and series)
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
@@ -11,14 +10,13 @@ export default class extends BaseSchema {
       table.json('categories').notNullable()
       table.text('description')
       table.json('directors')
-      table.integer('nb_episodes').nullable()
+      table.integer('nbEpisodes').nullable()
       table.json('casting')
-      table.string('main_image')
+      table.string('mainImage')
       table.string('logo')
       table.enum('type', ['film', 'series']).notNullable()
-
-      table.timestamp('created_at')
-      table.timestamp('updated_at')
+      table.timestamp('createdAt')
+      table.timestamp('updatedAt')
     })
   }
 

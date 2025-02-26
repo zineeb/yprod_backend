@@ -1,28 +1,27 @@
-// Migration for user_favorites table (user favorite media)
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'user_favorites'
+  protected tableName = 'userFavorites'
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
       table
-        .integer('user_id')
+        .integer('userId')
         .unsigned()
         .notNullable()
         .references('id')
         .inTable('users')
         .onDelete('CASCADE')
       table
-        .integer('media_id')
+        .integer('mediaId')
         .unsigned()
         .notNullable()
         .references('id')
         .inTable('medias')
         .onDelete('CASCADE')
-      table.timestamp('created_at')
-      table.timestamp('updated_at')
+      table.timestamp('createdAt')
+      table.timestamp('updatedAt')
     })
   }
 

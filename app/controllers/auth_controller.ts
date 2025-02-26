@@ -10,15 +10,12 @@ export default class AuthController {
       const payload = await registerUserSchema.validate(data)
 
       const user = await User.create({
-        fullName: payload.full_name,
+        fullName: payload.fullName,
         email: payload.email,
         password: payload.password,
       })
 
-      // Définir la durée d'expiration du jeton, par exemple 7 jours
       const expiresIn = '7d'
-
-      // Générer un jeton d'accès pour le nouvel utilisateur inscrit avec une expiration
       const token = await User.accessTokens.create(user, ['*'], { expiresIn })
 
       return response.created({
@@ -36,18 +33,13 @@ export default class AuthController {
       const data = request.all()
       const payload = await loginUserSchema.validate(data)
 
-      // Trouver l'utilisateur par e-mail
       const user = await User.query().where('email', payload.email).firstOrFail()
 
-      // Vérifier le mot de passe
       if (!(await Hash.verify(user.password, payload.password))) {
         return response.unauthorized('Identifiants invalides')
       }
 
-      // Définir la durée d'expiration du jeton, par exemple 7 jours
       const expiresIn = '7d'
-
-      // Générer un jeton d'accès pour l'utilisateur avec une expiration
       const token = await User.accessTokens.create(user, ['*'], { expiresIn })
 
       return response.ok({
@@ -58,6 +50,7 @@ export default class AuthController {
       return response.unauthorized('Échec de la connexion')
     }
   }
+
   public async session({ auth }: HttpContext) {
     await auth.check()
     return { user: auth.user }

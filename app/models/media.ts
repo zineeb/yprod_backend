@@ -1,12 +1,12 @@
 import { DateTime } from 'luxon'
-import {BaseModel, column, hasMany} from '@adonisjs/lucid/orm'
-import EpisodesSery from "#models/episodes_sery";
-import * as relations from "@adonisjs/lucid/types/relations";
+import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
+import * as relations from '@adonisjs/lucid/types/relations'
+import EpisodesSery from '#models/episodes_series'
 
 export default class Media extends BaseModel {
   public static table = 'medias'
 
-  @column({isPrimary: true})
+  @column({ isPrimary: true })
   declare id: number
 
   @column()
@@ -16,7 +16,7 @@ export default class Media extends BaseModel {
     consume: (value) => (value ? JSON.parse(value) : []),
     prepare: (value) => JSON.stringify(value),
   })
-  declare categories: string[];
+  declare categories: string[]
 
   @column()
   declare description: string | null
@@ -25,7 +25,7 @@ export default class Media extends BaseModel {
     consume: (value) => (value ? JSON.parse(value) : []),
     prepare: (value) => JSON.stringify(value),
   })
-  declare directors: string[] | null
+  declare directors: string[]
 
   @column()
   declare nbEpisodes: number | null
@@ -45,11 +45,16 @@ export default class Media extends BaseModel {
   @column()
   declare type: 'film' | 'series'
 
-  @column.dateTime({autoCreate: true})
+  @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
-  @column.dateTime({autoCreate: true, autoUpdate: true})
+  @column.dateTime({ autoCreate: true })
   declare updatedAt: DateTime
+
+  @column()
+  get videoPath(): string {
+    return `/storage/media/${this.type}/${this.id}.mp4`
+  }
 
   @hasMany(() => EpisodesSery)
   declare episodes: relations.HasMany<typeof EpisodesSery>

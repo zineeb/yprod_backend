@@ -1,23 +1,25 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Media from '#models/media'
-import EpisodesSery from '#models/episodes_sery'
+import Application from '@adonisjs/core/services/app'
 import { MediaData } from '../../types/media.js'
+import EpisodesSery from '#models/episodes_series'
 
 export default class MediaController {
+  private serializeMedias(medias: Media[]) {
+    return medias.map((media) => media.serialize())
+  }
+
   public async getLatestMedia({ response }: HttpContext) {
     try {
       const medias = await Media.query()
-        .select('id', 'title', 'categories', 'main_image', 'logo')
-        .orderBy('created_at', 'desc')
+        .select('id', 'title', 'categories', 'mainImage', 'logo')
+        .orderBy('createdAt', 'desc')
         .limit(5)
 
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      const serialized_medias = medias.map((media) => media.serialize())
-
-      return response.ok(serialized_medias)
+      return response.ok(this.serializeMedias(medias))
     } catch (error) {
       return response.internalServerError({
-        message: 'Erreur lors de la récupération des médias : ',
+        message: 'Error retrieving latest media.',
         error,
       })
     }
@@ -25,28 +27,24 @@ export default class MediaController {
 
   public async getMediasByType({ request, response }: HttpContext) {
     try {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      const valid_types = ['film', 'series']
+      const validTypes = ['film', 'series']
       const type = request.input('type')
 
-      if (!type || !valid_types.includes(type)) {
+      if (!validTypes.includes(type)) {
         return response.badRequest({
-          message: 'Type de média invalide ou manquant. Les types valides sont "film" et "series".',
+          message: 'Invalid media type. Valid types: "film" or "series".',
         })
       }
 
       const medias = await Media.query()
-        .select('id', 'title', 'categories', 'main_image')
+        .select('id', 'title', 'categories', 'mainImage')
         .where('type', type)
-        .orderBy('created_at', 'desc')
+        .orderBy('createdAt', 'desc')
 
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      const serialized_medias = medias.map((media) => media.serialize())
-
-      return response.ok(serialized_medias)
+      return response.ok(this.serializeMedias(medias))
     } catch (error) {
       return response.internalServerError({
-        message: 'Erreur lors de la récupération des médias : ',
+        message: 'Error retrieving media by type.',
         error,
       })
     }
@@ -54,24 +52,21 @@ export default class MediaController {
 
   public async search({ request, response }: HttpContext) {
     try {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      const search_term = request.input('q')
+      const searchTerm = request.input('q')
 
-      if (!search_term) {
-        return response.badRequest({
-          message: 'Veuillez fournir un terme de recherche.',
-        })
+      if (!searchTerm) {
+        return response.badRequest({ message: 'Search term is required.' })
       }
 
       const results = await Media.query()
-        .where('title', 'LIKE', `%${search_term}%`)
+        .where('title', 'LIKE', `%${searchTerm}%`)
         .select('id', 'title', 'type')
-        .orderBy('created_at', 'desc')
+        .orderBy('createdAt', 'desc')
 
-      return response.ok(results)
+      return response.ok(this.serializeMedias(results))
     } catch (error) {
       return response.internalServerError({
-        message: 'Erreur lors de la recherche des médias.',
+        message: 'Error searching media.',
         error,
       })
     }
@@ -79,48 +74,125 @@ export default class MediaController {
 
   public async showInformations({ request, response }: HttpContext) {
     try {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      const media_id = request.input('id')
-      const media = await Media.find(media_id)
+      const mediaId = request.input('id')
+      const media = await Media.find(mediaId)
 
       if (!media) {
-        return response.notFound({
-          message: 'No such media',
-        })
+        return response.notFound({ message: 'Media not found.' })
       }
 
-      const media_data: MediaData = {
+      const mediaPath = `/storage/media/${media.type}/${media.id}.mp4`
+
+      const mediaData: MediaData = {
         id: media.id,
         title: media.title,
         description: media.description,
         categories: media.categories,
         directors: media.directors,
         casting: media.casting,
-        main_image: media.mainImage,
+        mainImage: media.mainImage,
         logo: media.logo,
         type: media.type,
+        videoPath: mediaPath,
       }
 
       if (media.type === 'series') {
         const episodes = await EpisodesSery.query()
-          .where('id_serie', media_id)
-          .orderBy('nb_episode')
+          .where('mediaId', mediaId)
+          .orderBy('episodeNumber')
 
-        media_data.episodes = episodes.map((episode) => ({
+        mediaData.episodes = episodes.map((episode) => ({
           id: episode.id,
-          season_number: episode.seasonNumber,
-          episode_number: episode.episodeNumber,
+          seasonNumber: episode.seasonNumber,
+          episodeNumber: episode.episodeNumber,
           title: episode.title,
           description: episode.description,
-          created_at: episode.createdAt,
+          createdAt: episode.createdAt,
           image: episode.imageSeries || media.mainImage,
+          videoPath: `/storage/media/series/${media.id}/season_${episode.seasonNumber}/episode_${episode.episodeNumber}.mp4`,
         }))
       }
 
-      return response.ok(media_data)
+      return response.ok(mediaData)
     } catch (error) {
       return response.internalServerError({
-        message: 'Erreur lors de la récupération du média.',
+        message: 'Error retrieving media information.',
+        error,
+      })
+    }
+  }
+
+  public async createOrUpdateMedia({ request, response }: HttpContext) {
+    try {
+      const {
+        id,
+        title,
+        description,
+        categories,
+        directors,
+        casting,
+        type,
+        seasonNumber,
+        episodeNumber,
+      } = request.only([
+        'id',
+        'title',
+        'description',
+        'categories',
+        'directors',
+        'casting',
+        'type',
+        'seasonNumber',
+        'episodeNumber',
+      ])
+
+      let media = await Media.find(id)
+
+      if (media) {
+        media.merge({ title, description, categories, directors, casting })
+        await media.save()
+      } else {
+        media = await Media.create({ title, description, categories, directors, casting, type })
+      }
+
+      const video = request.file('video', { extnames: ['mp4'], size: '500mb' })
+      if (video) {
+        if (type === 'film') {
+          await video.move(Application.publicPath(`storage/media/film`), {
+            name: `${media.id}.mp4`,
+            overwrite: true,
+          })
+        } else if (type === 'series' && seasonNumber && episodeNumber) {
+          let episode = await EpisodesSery.query()
+            .where('mediaId', media.id)
+            .where('seasonNumber', seasonNumber)
+            .where('episodeNumber', episodeNumber)
+            .first()
+
+          if (!episode) {
+            episode = await EpisodesSery.create({
+              mediaId: media.id,
+              seasonNumber,
+              episodeNumber,
+              title: `${title} - S${seasonNumber}E${episodeNumber}`,
+              description: description || '',
+            })
+          }
+
+          await video.move(
+            Application.publicPath(`storage/media/series/${media.id}/season_${seasonNumber}`),
+            {
+              name: `episode_${episodeNumber}.mp4`,
+              overwrite: true,
+            }
+          )
+        }
+      }
+
+      return response.ok({ message: 'Media saved successfully.', media })
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Error saving media.',
         error,
       })
     }
