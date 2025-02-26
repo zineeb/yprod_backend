@@ -1,3 +1,4 @@
+// Migration for episodes_series table (series episodes)
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
@@ -16,7 +17,7 @@ export default class extends BaseSchema {
       table.timestamp('created_at')
       table.timestamp('updated_at')
 
-      table.index(['nb_season','nb_episode'])
+      table.index(['nb_season', 'nb_episode'])
     })
   }
 

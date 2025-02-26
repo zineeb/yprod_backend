@@ -1,3 +1,4 @@
+// Migration for medias table (information common to films and series)
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
