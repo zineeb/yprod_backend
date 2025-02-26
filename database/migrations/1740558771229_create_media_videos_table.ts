@@ -1,3 +1,4 @@
+// Migration for media_videos table (url media)
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {

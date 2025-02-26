@@ -1,3 +1,4 @@
+// Migration for user_favorites table (user favorite media)
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
