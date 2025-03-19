@@ -8,7 +8,6 @@ export default class MediaController {
    * Transforme un enregistrement média (en snake_case) en objet camelCase.
    */
   private serializeMedia(media: any): MediaData {
-    // TODO : a modifier en production ⚠️
     const BASE_URL = 'http://localhost:3333'
 
     // Helper pour parser une chaîne JSON en tableau, sinon renvoyer un tableau vide
@@ -26,6 +25,10 @@ export default class MediaController {
       return []
     }
 
+    // Utilise la valeur existante, que ce soit en snake_case ou en camelCase
+    const mainImagePath = media.main_image || media.mainImage
+    const logoPath = media.logo || media.Logo  // Généralement logo reste en minuscule
+
     return {
       id: media.id,
       title: media.title,
@@ -33,8 +36,8 @@ export default class MediaController {
       categories: parseToArray(media.categories),
       directors: parseToArray(media.directors),
       casting: parseToArray(media.casting),
-      mainImage: media.main_image ? `${BASE_URL}${media.main_image}` : null,
-      logo: media.logo ? `${BASE_URL}${media.logo}` : null,
+      mainImage: mainImagePath ? `${BASE_URL}${mainImagePath}` : null,
+      logo: logoPath ? `${BASE_URL}${logoPath}` : null,
       type: media.type,
       videoPath: `${BASE_URL}/storage/media/${media.type}/${media.id}.mp4`,
     }
