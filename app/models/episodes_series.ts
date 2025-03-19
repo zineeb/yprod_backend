@@ -4,7 +4,7 @@ import Media from '#models/media'
 import * as relations from '@adonisjs/lucid/types/relations'
 
 export default class EpisodeSeries extends BaseModel {
-  public static table = 'episodesSeries'
+  public static table = 'episodes_series'
 
   @column({ isPrimary: true })
   declare id: number

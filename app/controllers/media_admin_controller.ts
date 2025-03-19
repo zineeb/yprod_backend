@@ -17,56 +17,72 @@ export default class MediaAdminController {
         return response.unauthorized({ message: 'User is not authorized' })
       }
 
-      // Get media data from the request
-      const { id, title, description, categories, directors, casting, type } = request.only([
-        'id',
-        'title',
-        'description',
-        'categories',
-        'directors',
-        'casting',
-        'type',
-      ])
+      // Récupérer les données de la requête et s'assurer qu'elles sont bien en tableau JSON
+      const { id, title, description, type } = request.only(['id', 'title', 'description', 'type'])
+      const categories = request.input('categories')
+      const directors = request.input('directors')
+      const casting = request.input('casting')
+
+      // Vérifier que ces champs sont bien des tableaux JSON, sinon les convertir
+      const parseToArray = (field: any) => {
+        if (Array.isArray(field)) return field
+        if (typeof field === 'string') {
+          try {
+            return JSON.parse(field)
+          } catch {
+            return []
+          }
+        }
+        return []
+      }
 
       let media: Media | null = null
 
-      // If an ID is provided, attempt to update an existing media
+      // Si un ID est fourni, on met à jour le média existant
       if (id) {
         media = await Media.find(id)
         if (media) {
-          media.merge({ title, description, categories, directors, casting, type })
+          media.merge({
+            title,
+            description,
+            categories: parseToArray(categories),
+            directors: parseToArray(directors),
+            casting: parseToArray(casting),
+            type,
+          })
           await media.save()
         }
       }
 
-      // If media does not exist, create a new one
+      // Si le média n'existe pas, on le crée
       if (!media) {
-        media = await Media.create({ title, description, categories, directors, casting, type })
+        media = await Media.create({
+          title,
+          description,
+          categories: parseToArray(categories),
+          directors: parseToArray(directors),
+          casting: parseToArray(casting),
+          type,
+        })
       }
 
-      // Handle main image upload if provided
       const mainImage = request.file('mainImage', { extnames: ['jpg', 'jpeg', 'png'], size: '2mb' })
       if (mainImage) {
         await mainImage.move(Application.publicPath('storage/media/images'), {
-          name: `media_${media.id}_main.${mainImage.subtype}`,
+          name: `media_${media.id}_main.${mainImage.extname}`,
           overwrite: true,
         })
-        media.mainImage = `/storage/media/images/media_${media.id}_main.${mainImage.subtype}`
-        await media.save()
+        media.mainImage = `/storage/media/images/media_${media.id}_main.${mainImage.extname}`
       }
 
-      // Handle logo upload if provided
       const logo = request.file('logo', { extnames: ['jpg', 'jpeg', 'png'], size: '1mb' })
       if (logo) {
         await logo.move(Application.publicPath('storage/media/logos'), {
-          name: `media_${media.id}_logo.${logo.subtype}`,
+          name: `media_${media.id}_logo.${logo.extname}`,
           overwrite: true,
         })
-        media.logo = `/storage/media/logos/media_${media.id}_logo.${logo.subtype}`
-        await media.save()
+        media.logo = `/storage/media/logos/media_${media.id}_logo.${logo.extname}`
       }
-
-      // If the media is a film, handle video upload
       if (type === 'film') {
         const video = request.file('video', { extnames: ['mp4'], size: '10000mb' })
         if (video) {
@@ -76,6 +92,8 @@ export default class MediaAdminController {
           })
         }
       }
+
+      await media.save()
 
       return response.ok({ message: 'Media created/updated successfully.', media })
     } catch (error) {
@@ -94,7 +112,7 @@ export default class MediaAdminController {
         return response.unauthorized({ message: 'User is not authorized' })
       }
 
-      // Get episode data from the request
+      // Récupérer les données de la requête
       const { mediaId, seasonNumber, episodeNumber, title, description } = request.only([
         'mediaId',
         'seasonNumber',
@@ -109,13 +127,12 @@ export default class MediaAdminController {
         })
       }
 
-      // Verify that the media exists and is a series
+      // Vérifier que la série existe
       const media = await Media.find(mediaId)
       if (!media || media.type !== 'series') {
         return response.notFound({ message: 'Series not found.' })
       }
 
-      // Check if the episode already exists
       let episode = await EpisodeSeries.query()
         .where('mediaId', media.id)
         .where('seasonNumber', seasonNumber)
@@ -123,11 +140,14 @@ export default class MediaAdminController {
         .first()
 
       if (episode) {
-        // Update existing episode data
-        episode.merge({ title, description })
+        // Mettre à jour l'épisode existant
+        episode.merge({
+          title,
+          description,
+        })
         await episode.save()
       } else {
-        // Create a new episode
+        // Créer un nouvel épisode
         episode = await EpisodeSeries.create({
           mediaId: media.id,
           seasonNumber,
@@ -137,7 +157,7 @@ export default class MediaAdminController {
         })
       }
 
-      // Handle video file upload for the episode
+      // Gérer l'upload du fichier vidéo
       const video = request.file('video', { extnames: ['mp4'], size: '10000mb' })
       if (video) {
         await video.move(
@@ -149,7 +169,7 @@ export default class MediaAdminController {
         )
       }
 
-      // Handle episode image upload if provided
+      // Gérer l'upload de l'image de l'épisode
       const episodeImage = request.file('episodeImage', {
         extnames: ['jpg', 'jpeg', 'png'],
         size: '2mb',
@@ -162,7 +182,7 @@ export default class MediaAdminController {
             overwrite: true,
           }
         )
-        // Save the image path in the episode record
+        // Stocker le chemin de l'image
         episode.imageSeries = `/storage/media/series/${media.id}/season_${seasonNumber}/episode_${episodeNumber}_image.${episodeImage.subtype}`
         await episode.save()
       }
