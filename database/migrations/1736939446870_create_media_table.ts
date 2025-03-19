@@ -10,13 +10,13 @@ export default class extends BaseSchema {
       table.json('categories').notNullable()
       table.text('description')
       table.json('directors')
-      table.integer('nbEpisodes').nullable()
+      table.integer('nb_episodes').nullable()
       table.json('casting')
-      table.string('mainImage')
+      table.string('main_image')
       table.string('logo')
       table.enum('type', ['film', 'series']).notNullable()
-      table.timestamp('createdAt')
-      table.timestamp('updatedAt')
+      table.timestamp('created_at')
+      table.timestamp('updated_at')
     })
   }
 

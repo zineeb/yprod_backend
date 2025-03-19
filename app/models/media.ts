@@ -13,8 +13,8 @@ export default class Media extends BaseModel {
   declare title: string
 
   @column({
-    consume: (value) => (value ? JSON.parse(value) : []),
-    prepare: (value) => JSON.stringify(value),
+    consume: (value: string | null) => (value ? JSON.parse(value) : []),
+    prepare: (value: string[]) => JSON.stringify(value),
   })
   declare categories: string[]
 
@@ -22,8 +22,8 @@ export default class Media extends BaseModel {
   declare description: string | null
 
   @column({
-    consume: (value) => (value ? JSON.parse(value) : []),
-    prepare: (value) => JSON.stringify(value),
+    consume: (value: string | null) => (value ? JSON.parse(value) : []),
+    prepare: (value: string[]) => JSON.stringify(value),
   })
   declare directors: string[]
 
@@ -31,8 +31,8 @@ export default class Media extends BaseModel {
   declare nbEpisodes: number | null
 
   @column({
-    consume: (value) => (value ? JSON.parse(value) : []),
-    prepare: (value) => JSON.stringify(value),
+    consume: (value: string | null) => (value ? JSON.parse(value) : []),
+    prepare: (value: string[]) => JSON.stringify(value),
   })
   declare casting: string[] | null
 

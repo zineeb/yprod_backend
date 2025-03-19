@@ -1,22 +1,60 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Media from '#models/media'
-import Application from '@adonisjs/core/services/app'
-import { MediaData } from '../../types/media.js'
 import EpisodesSery from '#models/episodes_series'
+import { MediaData } from '../../types/media.js'
 
 export default class MediaController {
-  private serializeMedias(medias: Media[]) {
-    return medias.map((media) => media.serialize())
+  /**
+   * Transforme un enregistrement média (en snake_case) en objet camelCase.
+   */
+  private serializeMedia(media: any): MediaData {
+    // Helper pour parser une chaîne JSON en tableau, sinon renvoyer un tableau vide
+    const parseToArray = (field: unknown): string[] => {
+      if (Array.isArray(field)) {
+        return field.map(String) // S'assure que tous les éléments sont des strings
+      }
+      if (typeof field === 'string') {
+        try {
+          return JSON.parse(field).map(String) // Convertit JSON en tableau de strings
+        } catch {
+          return [] // Retourne un tableau vide en cas d'erreur de parsing
+        }
+      }
+      return []
+    }
+
+    // Construction du chemin vidéo pour les films
+    const videoPath = `/storage/media/${media.type}/${media.id}.mp4`
+
+    return {
+      id: media.id,
+      title: media.title,
+      description: media.description,
+      categories: parseToArray(media.categories), // Converti en tableau
+      directors: parseToArray(media.directors),
+      casting: parseToArray(media.casting),
+      mainImage: media.main_image || media.mainImage,
+      logo: media.logo,
+      type: media.type,
+      videoPath: videoPath,
+    }
+  }
+
+  /**
+   * Transforme un tableau d'enregistrements média.
+   */
+  private serializeMedias(medias: any[]): MediaData[] {
+    return medias.map((media) => this.serializeMedia(media))
   }
 
   public async getLatestMedia({ response }: HttpContext) {
     try {
       const medias = await Media.query()
-        .select('id', 'title', 'categories', 'mainImage', 'logo')
-        .orderBy('createdAt', 'desc')
+        .select('id', 'title', 'categories', 'main_image', 'logo')
+        .orderBy('created_at', 'desc')
         .limit(5)
-
-      return response.ok(this.serializeMedias(medias))
+      const result = this.serializeMedias(medias)
+      return response.ok(result)
     } catch (error) {
       return response.internalServerError({
         message: 'Error retrieving latest media.',
@@ -29,19 +67,17 @@ export default class MediaController {
     try {
       const validTypes = ['film', 'series']
       const type = request.input('type')
-
       if (!validTypes.includes(type)) {
         return response.badRequest({
           message: 'Invalid media type. Valid types: "film" or "series".',
         })
       }
-
       const medias = await Media.query()
-        .select('id', 'title', 'categories', 'mainImage')
+        .select('id', 'title', 'categories', 'main_image')
         .where('type', type)
-        .orderBy('createdAt', 'desc')
-
-      return response.ok(this.serializeMedias(medias))
+        .orderBy('created_at', 'desc')
+      const result = this.serializeMedias(medias)
+      return response.ok(result)
     } catch (error) {
       return response.internalServerError({
         message: 'Error retrieving media by type.',
@@ -53,17 +89,15 @@ export default class MediaController {
   public async search({ request, response }: HttpContext) {
     try {
       const searchTerm = request.input('q')
-
       if (!searchTerm) {
         return response.badRequest({ message: 'Search term is required.' })
       }
-
       const results = await Media.query()
         .where('title', 'LIKE', `%${searchTerm}%`)
         .select('id', 'title', 'type')
-        .orderBy('createdAt', 'desc')
-
-      return response.ok(this.serializeMedias(results))
+        .orderBy('created_at', 'desc')
+      const result = this.serializeMedias(results)
+      return response.ok(result)
     } catch (error) {
       return response.internalServerError({
         message: 'Error searching media.',
@@ -76,123 +110,22 @@ export default class MediaController {
     try {
       const mediaId = request.input('id')
       const media = await Media.find(mediaId)
-
       if (!media) {
         return response.notFound({ message: 'Media not found.' })
       }
-
-      const mediaPath = `/storage/media/${media.type}/${media.id}.mp4`
-
-      const mediaData: MediaData = {
-        id: media.id,
-        title: media.title,
-        description: media.description,
-        categories: media.categories,
-        directors: media.directors,
-        casting: media.casting,
-        mainImage: media.mainImage,
-        logo: media.logo,
-        type: media.type,
-        videoPath: mediaPath,
-      }
-
+      // Si le média est une série, on charge également ses épisodes
       if (media.type === 'series') {
         const episodes = await EpisodesSery.query()
           .where('mediaId', mediaId)
           .orderBy('episodeNumber')
-
-        mediaData.episodes = episodes.map((episode) => ({
-          id: episode.id,
-          seasonNumber: episode.seasonNumber,
-          episodeNumber: episode.episodeNumber,
-          title: episode.title,
-          description: episode.description,
-          createdAt: episode.createdAt,
-          image: episode.imageSeries || media.mainImage,
-          videoPath: `/storage/media/series/${media.id}/season_${episode.seasonNumber}/episode_${episode.episodeNumber}.mp4`,
-        }))
+        // Stocker les épisodes dans la relation "episodes" pour faciliter la sérialisation
+        media.$setRelated('episodes', episodes)
       }
-
-      return response.ok(mediaData)
+      const result = this.serializeMedia(media)
+      return response.ok(result)
     } catch (error) {
       return response.internalServerError({
         message: 'Error retrieving media information.',
-        error,
-      })
-    }
-  }
-
-  public async createOrUpdateMedia({ request, response }: HttpContext) {
-    try {
-      const {
-        id,
-        title,
-        description,
-        categories,
-        directors,
-        casting,
-        type,
-        seasonNumber,
-        episodeNumber,
-      } = request.only([
-        'id',
-        'title',
-        'description',
-        'categories',
-        'directors',
-        'casting',
-        'type',
-        'seasonNumber',
-        'episodeNumber',
-      ])
-
-      let media = await Media.find(id)
-
-      if (media) {
-        media.merge({ title, description, categories, directors, casting })
-        await media.save()
-      } else {
-        media = await Media.create({ title, description, categories, directors, casting, type })
-      }
-
-      const video = request.file('video', { extnames: ['mp4'], size: '500mb' })
-      if (video) {
-        if (type === 'film') {
-          await video.move(Application.publicPath(`storage/media/film`), {
-            name: `${media.id}.mp4`,
-            overwrite: true,
-          })
-        } else if (type === 'series' && seasonNumber && episodeNumber) {
-          let episode = await EpisodesSery.query()
-            .where('mediaId', media.id)
-            .where('seasonNumber', seasonNumber)
-            .where('episodeNumber', episodeNumber)
-            .first()
-
-          if (!episode) {
-            episode = await EpisodesSery.create({
-              mediaId: media.id,
-              seasonNumber,
-              episodeNumber,
-              title: `${title} - S${seasonNumber}E${episodeNumber}`,
-              description: description || '',
-            })
-          }
-
-          await video.move(
-            Application.publicPath(`storage/media/series/${media.id}/season_${seasonNumber}`),
-            {
-              name: `episode_${episodeNumber}.mp4`,
-              overwrite: true,
-            }
-          )
-        }
-      }
-
-      return response.ok({ message: 'Media saved successfully.', media })
-    } catch (error) {
-      return response.internalServerError({
-        message: 'Error saving media.',
         error,
       })
     }

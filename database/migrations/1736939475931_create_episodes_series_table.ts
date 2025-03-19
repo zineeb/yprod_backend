@@ -1,20 +1,20 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'episodesSeries'
+  protected tableName = 'episodes_series'
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
-      table.integer('episodeNumber').notNullable()
-      table.integer('seasonNumber').notNullable()
+      table.integer('episode_number').notNullable()
+      table.integer('season_number').notNullable()
       table.string('title').notNullable()
       table.text('description')
-      table.string('imageSeries').nullable().defaultTo(null)
-      table.integer('mediaId').unsigned().references('id').inTable('medias').onDelete('CASCADE')
-      table.timestamp('createdAt')
-      table.timestamp('updatedAt')
-      table.index(['seasonNumber', 'episodeNumber'])
+      table.string('image_series').nullable().defaultTo(null)
+      table.integer('media_id').unsigned().references('id').inTable('medias').onDelete('CASCADE')
+      table.timestamp('created_at')
+      table.timestamp('updated_at')
+      table.index(['season_number', 'episode_number'])
     })
   }
 
