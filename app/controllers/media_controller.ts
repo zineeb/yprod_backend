@@ -25,11 +25,12 @@ export default class MediaController {
       return []
     }
 
-    // Utilise la valeur existante, que ce soit en snake_case ou en camelCase
+    // Utilisation de la valeur existante pour les images
     const mainImagePath = media.main_image || media.mainImage
-    const logoPath = media.logo || media.Logo  // Généralement logo reste en minuscule
+    const logoPath = media.logo || media.Logo
 
-    return {
+    // Objet de base pour le média
+    const mediaData: MediaData = {
       id: media.id,
       title: media.title,
       description: media.description,
@@ -39,8 +40,25 @@ export default class MediaController {
       mainImage: mainImagePath ? `${BASE_URL}${mainImagePath}` : null,
       logo: logoPath ? `${BASE_URL}${logoPath}` : null,
       type: media.type,
-      videoPath: `${BASE_URL}/storage/media/${media.type}/${media.id}.mp4`,
+      videoPath: media.type === 'film' ? `${BASE_URL}/storage/media/film/${media.id}.mp4` : '',
     }
+
+    // Si le média est une série, on ajoute les épisodes
+    if (media.type === 'series' && media.episodes) {
+      mediaData.episodes = media.episodes.map((episode: any) => {
+        return {
+          id: episode.id,
+          seasonNumber: episode.seasonNumber,
+          episodeNumber: episode.episodeNumber,
+          title: episode.title,
+          description: episode.description,
+          image: episode.imageSeries ? `${BASE_URL}${episode.imageSeries}` : mediaData.mainImage, // Image par défaut si aucune
+          videoPath: `${BASE_URL}/storage/media/series/${media.id}/season_${episode.seasonNumber}/episode_${episode.episodeNumber}.mp4`,
+        }
+      })
+    }
+
+    return mediaData
   }
 
   /**
@@ -77,7 +95,7 @@ export default class MediaController {
         })
       }
       const medias = await Media.query()
-        .select('id', 'title', 'categories', 'main_image')
+        .select('id', 'title', 'categories', 'main_image', 'logo', 'type', 'directors', 'casting')
         .where('type', type)
         .orderBy('created_at', 'desc')
       const result = this.serializeMedias(medias)
@@ -114,17 +132,21 @@ export default class MediaController {
     try {
       const mediaId = request.input('id')
       const media = await Media.find(mediaId)
+
       if (!media) {
         return response.notFound({ message: 'Media not found.' })
       }
+
       // Si le média est une série, on charge également ses épisodes
       if (media.type === 'series') {
         const episodes = await EpisodesSery.query()
           .where('mediaId', mediaId)
+          .orderBy('seasonNumber')
           .orderBy('episodeNumber')
-        // Stocker les épisodes dans la relation "episodes" pour faciliter la sérialisation
+
         media.$setRelated('episodes', episodes)
       }
+
       const result = this.serializeMedia(media)
       return response.ok(result)
     } catch (error) {
