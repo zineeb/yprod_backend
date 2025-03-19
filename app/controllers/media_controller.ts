@@ -53,9 +53,10 @@ export default class MediaController {
   public async getLatestMedia({ response }: HttpContext) {
     try {
       const medias = await Media.query()
-        .select('id', 'title', 'categories', 'main_image', 'logo')
+        .select('id', 'title', 'categories', 'main_image', 'logo', 'type', 'directors', 'casting')
         .orderBy('created_at', 'desc')
         .limit(5)
+
       const result = this.serializeMedias(medias)
       return response.ok(result)
     } catch (error) {
