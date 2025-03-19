@@ -156,4 +156,25 @@ export default class MediaController {
       })
     }
   }
+
+  public async getAllMedias({ response }: HttpContext) {
+    try {
+      const medias = await Media.query().select('id', 'title', 'type')
+
+      // Formatter les résultats
+      const result = {
+        films: medias.filter((m) => m.type === 'film').map((m) => ({ id: m.id, title: m.title })),
+        series: medias
+          .filter((m) => m.type === 'series')
+          .map((m) => ({ id: m.id, title: m.title })),
+      }
+
+      return response.ok(result)
+    } catch (error) {
+      return response.internalServerError({
+        message: 'Error retrieving media ids and titles.',
+        error,
+      })
+    }
+  }
 }

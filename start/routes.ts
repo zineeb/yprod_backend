@@ -30,6 +30,7 @@ router.get('medias/latest', [MediaController, 'getLatestMedia'])
 router.get('medias', [MediaController, 'getMediasByType'])
 router.get('search', [MediaController, 'search'])
 router.get('media', [MediaController, 'showInformations'])
+router.get('medias/all', [MediaController, 'getAllMedias'])
 
 // Routes d'authentification
 router.post('auth/register', [AuthController, 'register'])
