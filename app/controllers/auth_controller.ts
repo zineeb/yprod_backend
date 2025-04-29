@@ -119,4 +119,18 @@ export default class AuthController {
       })
     }
   }
+  public async logout({ auth, response }: HttpContext) {
+    try {
+      // Pour le guard « api » utilisant le driver oat
+      await auth.use('api').invalidateToken()
+      return response.ok({
+        message: 'Déconnexion réussie',
+      })
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion :', error)
+      return response.internalServerError({
+        message: 'Erreur lors de la déconnexion.',
+      })
+    }
+  }
 }

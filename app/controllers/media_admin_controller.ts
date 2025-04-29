@@ -12,6 +12,7 @@ export default class MediaAdminController {
    */
   public async createOrUpdateMedia({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
       const user = auth.user as User
       if (user.role !== 'admin') {
         return response.unauthorized({ message: 'User is not authorized' })
@@ -107,6 +108,7 @@ export default class MediaAdminController {
    */
   public async createOrUpdateEpisode({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
       const user = auth.user as User
       if (user.role !== 'admin') {
         return response.unauthorized({ message: 'User is not authorized' })
@@ -199,12 +201,13 @@ export default class MediaAdminController {
    */
   public async deleteMedia({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
       const user = auth.user as User
       if (user.role !== 'admin') {
         return response.unauthorized({ message: 'User is not authorized' })
       }
 
-      const id = request.input('id')
+      const id = request.param('id')
       const media = await Media.find(id)
       if (!media) {
         return response.notFound({ message: 'Media not found' })
@@ -222,12 +225,13 @@ export default class MediaAdminController {
    */
   public async deleteEpisode({ auth, request, response }: HttpContext) {
     try {
+      await auth.check()
       const user = auth.user as User
       if (user.role !== 'admin') {
         return response.unauthorized({ message: 'User is not authorized' })
       }
 
-      const episodeId = request.input('episodeId')
+      const episodeId = request.param('episodeId')
       if (!episodeId) {
         return response.badRequest({ message: 'episodeId is required' })
       }
@@ -241,6 +245,41 @@ export default class MediaAdminController {
       return response.ok({ message: 'Episode deleted successfully.' })
     } catch (error) {
       return response.internalServerError({ message: 'Error deleting episode', error })
+    }
+  }
+
+  /**
+   * Retrieves all episodes and their associated series titles.
+   * Performs a join between episodes_series and medias using episodes_series.media_id = medias.id.
+   * Returns the episode id, the episode title, and the series title.
+   */
+  public async getEpisodes({ auth, response }: HttpContext) {
+    try {
+      await auth.check()
+      const user = auth.user as User
+      if (user.role !== 'admin') {
+        return response.unauthorized({ message: 'User is not authorized' })
+      }
+
+      const episodes = await EpisodeSeries.query()
+        .select(
+          'episodes_series.id',
+          'episodes_series.title as episode_title',
+          'medias.title as series_title'
+        )
+        .join('medias', 'episodes_series.media_id', 'medias.id')
+
+      return response.ok({
+        message: 'Episodes retrieved successfully.',
+        episodes: episodes.map((e) => ({
+          id: e.id,
+          episode_title: e.$extras.episode_title,
+          series_title: e.$extras.series_title,
+        })),
+      })
+    } catch (error) {
+      console.log(error)
+      return response.internalServerError({ message: 'Error retrieving episodes', error })
     }
   }
 }

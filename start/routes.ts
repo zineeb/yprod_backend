@@ -31,11 +31,13 @@ router.get('medias', [MediaController, 'getMediasByType'])
 router.get('search', [MediaController, 'search'])
 router.get('media', [MediaController, 'showInformations'])
 router.get('medias/all', [MediaController, 'getAllMedias'])
+router.get('episodes/all', [MediaAdminController, 'getEpisodes'])
 
 // Routes d'authentification
 router.post('auth/register', [AuthController, 'register'])
 router.post('auth/login', [AuthController, 'login'])
 router.get('auth/session', [AuthController, 'session'])
+router.post('auth/logout', [AuthController, 'logout'])
 
 // Routes administratives protégées par middleware "admin"
 router

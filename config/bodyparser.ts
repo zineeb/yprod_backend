@@ -14,6 +14,7 @@ const bodyParserConfig = defineConfig({
   form: {
     convertEmptyStringsToNull: true,
     types: ['application/x-www-form-urlencoded'],
+    limit: '10000mb',
   },
 
   /**
@@ -21,6 +22,7 @@ const bodyParserConfig = defineConfig({
    */
   json: {
     convertEmptyStringsToNull: true,
+    limit: '10000mb',
     types: [
       'application/json',
       'application/json-patch+json',
