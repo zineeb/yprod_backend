@@ -121,8 +121,15 @@ export default class AuthController {
   }
   public async logout({ auth, response }: HttpContext) {
     try {
-      // Pour le guard « api » utilisant le driver oat
-      await auth.use('api').invalidateToken()
+      await auth.check()
+
+      if (!auth.user) {
+        return response.unauthorized()
+      }
+
+      const tokenId = auth.user!.currentAccessToken!.identifier
+
+      await User.accessTokens.delete(auth.user!, tokenId)
       return response.ok({
         message: 'Déconnexion réussie',
       })
