@@ -24,6 +24,24 @@ router.get('/storage/media/*', async ({ request, response }) => {
     return response.notFound({ message: 'File not found' })
   }
 
+  // Déterminer le type MIME en fonction de l'extension du fichier
+  const extension = filePath.split('.').pop()?.toLowerCase() || ''
+  const mimeTypes = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'svg': 'image/svg+xml',
+    'mp4': 'video/mp4',
+    'webm': 'video/webm',
+    'avi': 'video/x-msvideo',
+    'mov': 'video/quicktime',
+    'mkv': 'video/x-matroska'
+  }
+
+  const contentType = mimeTypes[extension] || 'application/octet-stream'
+
   const stat = statSync(filePath)
   const size = stat.size
   const range = request.header('range')
@@ -35,8 +53,9 @@ router.get('/storage/media/*', async ({ request, response }) => {
     response
       .status(200)
       .header('Content-Length', size.toString())
-      .header('Content-Type', 'video/mp4')
+      .header('Content-Type', contentType) // Utiliser le type MIME détecté
       .header('Accept-Ranges', 'bytes')
+      .header('X-Content-Type-Options', 'nosniff') // Empêcher Safari de "deviner" le type de contenu
     return response.stream(createReadStream(filePath))
   }
 
@@ -54,7 +73,8 @@ router.get('/storage/media/*', async ({ request, response }) => {
     .header('Content-Range', `bytes ${start}-${end}/${size}`)
     .header('Accept-Ranges', 'bytes')
     .header('Content-Length', chunk.toString())
-    .header('Content-Type', 'video/mp4')
+    .header('Content-Type', contentType) // Utiliser le type MIME détecté
+    .header('X-Content-Type-Options', 'nosniff')
 
   return response.stream(createReadStream(filePath, { start, end }))
 })
