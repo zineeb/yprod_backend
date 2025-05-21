@@ -8,7 +8,7 @@ export default class MediaController {
    * Transforme un enregistrement média (en snake_case) en objet camelCase.
    */
   private serializeMedia(media: any): MediaData {
-    const BASE_URL = 'http://localhost:3333'
+    const BASE_URL = process.env.BASE_URL
 
     // Helper pour parser une chaîne JSON en tableau, sinon renvoyer un tableau vide
     const parseToArray = (field: unknown): string[] => {

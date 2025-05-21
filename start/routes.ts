@@ -9,7 +9,9 @@ const MediaAdminController = () => import('#controllers/media_admin_controller')
 
 router.get('/', async () => ({ hello: 'world' }))
 
-// 🔥 Nouvelle route pour servir les fichiers statiques (images, vidéos)
+// start/routes.ts
+import { statSync } from 'node:fs'
+
 router.get('/storage/media/*', async ({ request, response }) => {
   const fileParam = request.param('*')
   const filePath = join(
@@ -22,7 +24,39 @@ router.get('/storage/media/*', async ({ request, response }) => {
     return response.notFound({ message: 'File not found' })
   }
 
-  return response.stream(createReadStream(filePath))
+  const stat = statSync(filePath)
+  const size = stat.size
+  const range = request.header('range')
+
+  /* ------------------------------------------------------------------ */
+  /* 1. PAS d'en-tête Range  → envoi complet (200)                      */
+  /* ------------------------------------------------------------------ */
+  if (!range) {
+    response
+      .status(200)
+      .header('Content-Length', size.toString())
+      .header('Content-Type', 'video/mp4')
+      .header('Accept-Ranges', 'bytes')
+    return response.stream(createReadStream(filePath))
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* 2. AVEC Range → découpe + 206 Partial Content                      */
+  /* ------------------------------------------------------------------ */
+  // exemple "bytes=12345-" ou "bytes=12345-67890"
+  const [startStr, endStr] = range.replace(/bytes=/, '').split('-')
+  const start = Number(startStr)
+  const end = endStr ? Number(endStr) : size - 1
+  const chunk = end - start + 1
+
+  response
+    .status(206)
+    .header('Content-Range', `bytes ${start}-${end}/${size}`)
+    .header('Accept-Ranges', 'bytes')
+    .header('Content-Length', chunk.toString())
+    .header('Content-Type', 'video/mp4')
+
+  return response.stream(createReadStream(filePath, { start, end }))
 })
 
 // Routes pour les médias

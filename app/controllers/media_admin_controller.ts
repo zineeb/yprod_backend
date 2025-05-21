@@ -264,6 +264,7 @@ export default class MediaAdminController {
       const episodes = await EpisodeSeries.query()
         .select(
           'episodes_series.id',
+          'episodes_series.media_id',
           'episodes_series.title as episode_title',
           'medias.title as series_title'
         )
@@ -273,6 +274,7 @@ export default class MediaAdminController {
         message: 'Episodes retrieved successfully.',
         episodes: episodes.map((e) => ({
           id: e.id,
+          mediaId: e.mediaId, // Ajout explicite ici
           episode_title: e.$extras.episode_title,
           series_title: e.$extras.series_title,
         })),

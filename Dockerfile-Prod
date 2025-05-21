@@ -1,0 +1,37 @@
+# Étape 1: Utiliser une image Node.js officielle comme image de base
+FROM node:22.9.0-alpine
+
+# Installer les dépendances nécessaires pour pdftocairo
+RUN apk add --no-cache git
+
+# Définir le répertoire de travail dans le conteneur
+WORKDIR /app
+
+# Copier le package.json et le package-lock.json (si disponible)
+COPY package*.json ./
+
+# Mettre à jour npm à sa dernière version
+RUN npm install -g npm@latest
+
+# Installer les dépendances de production uniquement
+RUN npm install --production
+
+# Copier le build de l'application et le fichier .env préparé localement dans le conteneur
+COPY build ./
+
+# S'assurer que le fichier .env est bien au bon endroit
+COPY .env.prod ./.env
+
+# Exposer le port sur lequel votre app va écouter
+EXPOSE 3333
+
+# Définir la variable d'environnement pour le mode production
+ENV NODE_ENV=production
+
+# Lancer l'application
+CMD ["node","bin/server.js"]
+
+#docker build -t api.yprod.cloud:latest . -f Dockerfile-Prod
+#docker tag api.yprod.cloud:latest 0dymli9n.c1.de1.container-registry.ovh.net/yprod-cloud/api.yprod.cloud:latest
+#docker push 0dymli9n.c1.de1.container-registry.ovh.net/yprod-cloud/api.yprod.cloud:latest
+
